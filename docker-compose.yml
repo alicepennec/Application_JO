@@ -1,0 +1,46 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: sportdb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  airflow: 
+    image: apache/airflow:2.9.2
+    container_name: airflow
+    restart: always
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://user:pass@postgres:5432/sportdb
+      - AIRFLOW__CORE__FERNET_KEY=''
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=False
+      - AIRFLOW__WEBSERVER__PORT=8085
+    ports:
+      - "8085:8085"
+    volumes:
+      - ./airflow/data:/opt/airflow/dags
+    entrypoint: >
+      bash -c "
+      airflow db init &&
+      airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin &&
+      airflow webserver & airflow scheduler
+      "
+    #command: bash -c "airflow db init && airflow scheduler & airflow webserver"
+    depends_on:
+      - postgres
+
+  streamlit:
+      build: ./streamlit_app
+      ports:
+        - "8501:8501"
+      depends_on:
+        - postgres
+
+volumes:
+  pgdata:
