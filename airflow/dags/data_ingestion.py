@@ -37,7 +37,7 @@ def extract_data():
 
 def transform_data(**kwargs):
     ti = kwargs['ti']
-    data = ti.xcom_pull(task_ids='extract_task')
+    data = ti.xcom_pull(task_id='extract_data')
     df = pd.read_json(data)
 
     df_transformed = df.drop(
@@ -68,10 +68,11 @@ def transform_data(**kwargs):
 
 def load_data(**kwargs):
     ti = kwargs['ti']
-    data = ti.xcom_pull(task_ids='transform_task')
+    data = ti.xcom_pull(task_id='transform_data')
     df = pd.read_json(data)
+    
 # Connexion via SQLAlchemy
-    engine = create_engine("postgresql+psycopg2://user:pass@postgres:5432/sportdb")
+    engine = create_engine("postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
 
 # Création de la table
     with engine.begin() as conn:
@@ -113,7 +114,7 @@ def load_data(**kwargs):
         """)
 
     # Insertion avec Pandas (ignore si déjà présent via index)
-    df.to_sql('sports', conn, if_exists='append', index=False)
+    df.to_sql('sports', conn, if_exists='append', index=False, method='multi')
 
 # Définiton du dag
 dag = DAG(
@@ -127,6 +128,7 @@ dag = DAG(
 
 # Ordre d'exécution des tâches
 extract_task = PythonOperator(task_id='extract_data', python_callable=extract_data, dag=dag)
-trasform_task = PythonOperator(task_id='transform_data', python_callable=transform_data, provide_context=True, dag=dag)
+transform_task = PythonOperator(task_id='transform_data', python_callable=transform_data, provide_context=True, dag=dag)
 load_task = PythonOperator(task_id='load_data', python_callable=load_data, provide_context=True, dag=dag)
     
+extract_task >> transform_task >> load_task

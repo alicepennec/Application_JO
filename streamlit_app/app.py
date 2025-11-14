@@ -2,9 +2,19 @@ import streamlit as st
 from sqlalchemy import create_engine
 import pandas as pd
 import psycopg2
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
+DB_NAME = os.getenv("DB_NAME")
 
 # Connexion SQLAlchemy
-engine = create_engine("postgresql+psycopg2://user:pass@postgres:5432/sportdb")
+engine = create_engine("postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
+
 
 st.title("SQL Playground - Données Sportives")
 
